@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>직원용 포스기 (Staff POS Console)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", Roboto, "Noto Sans KR", sans-serif;
+    }
+    .toss-blue { background-color: #3182F6; }
+    .toss-blue:active { background-color: #1b64da; }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen p-4 sm:p-6 flex items-center justify-center">
+  <div class="w-full max-w-md bg-white rounded-3xl shadow-xl border border-gray-200 overflow-hidden">
+    
+    <!-- 1. 직원 로그인 화면 (초기 상태) -->
+    <section id="section-login" class="p-6">
+      <div class="flex items-center gap-2 mb-6">
+        <div class="w-3.5 h-3.5 rounded-full toss-blue"></div>
+        <h1 class="text-xl font-bold text-gray-900 tracking-tight">직원용 POS 로그인</h1>
+      </div>
+
+      <p class="text-sm text-gray-500 mb-6">등록된 매장 계정으로 로그인하여 단말기와 연결하세요.</p>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-400 mb-1">이메일 계정</label>
+          <input type="email" id="input-staff-email" value="store@test.com" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:border-blue-500 transition-colors" placeholder="email@example.com">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-400 mb-1">비밀번호</label>
+          <input type="password" id="input-staff-password" value="123456" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium outline-none focus:border-blue-500 transition-colors" placeholder="비밀번호 입력">
+        </div>
+      </div>
+
+      <p id="staff-auth-error" class="text-xs text-red-500 font-medium mt-3 min-h-[16px]"></p>
+
+      <button id="btn-staff-login" class="w-full mt-4 py-4 toss-blue text-white font-bold text-base rounded-2xl shadow-sm active:scale-[0.98] transition">
+        POS 시스템 로그인
+      </button>
+    </section>
+
+    <!-- 2. 직원 POS 제어 콘솔 (로그인 성공 시 표시) -->
+    <section id="section-pos" class="p-6 hidden">
+      <!-- 상단 매장 계정 정보 및 상태 바 -->
+      <header class="flex items-center justify-between pb-4 border-b border-gray-100 mb-5">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full toss-blue"></span>
+            <h2 id="staff-display-name" class="font-bold text-gray-900 text-base">스테픈 커피</h2>
+          </div>
+          <p id="staff-display-email" class="text-[11px] text-gray-400 mt-0.5">store@test.com</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <span id="badge-status" class="px-2.5 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-500">대기 중 (IDLE)</span>
+          <button id="btn-staff-logout" class="text-xs text-gray-400 hover:text-red-500 underline ml-1">로그아웃</button>
+        </div>
+      </header>
+
+      <!-- 빠른 메뉴 담기 -->
+      <div class="mb-5">
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2.5">빠른 메뉴 담기</h3>
+        <div class="grid grid-cols-2 gap-2">
+          <button class="btn-menu p-3 text-left border border-gray-200 rounded-xl hover:bg-blue-50 hover:border-blue-200 transition active:scale-[0.97]" data-price="4500" data-name="아메리카노">
+            <p class="font-bold text-gray-800 text-sm">아메리카노</p>
+            <p class="text-xs text-blue-600 font-semibold mt-1">4,500원</p>
+          </button>
+          <button class="btn-menu p-3 text-left border border-gray-200 rounded-xl hover:bg-blue-50 hover:border-blue-200 transition active:scale-[0.97]" data-price="5500" data-name="카페라떼">
+            <p class="font-bold text-gray-800 text-sm">카페라떼</p>
+            <p class="text-xs text-blue-600 font-semibold mt-1">5,500원</p>
+          </button>
+          <button class="btn-menu p-3 text-left border border-gray-200 rounded-xl hover:bg-blue-50 hover:border-blue-200 transition active:scale-[0.97]" data-price="6000" data-name="바닐라빈 라떼">
+            <p class="font-bold text-gray-800 text-sm">바닐라빈 라떼</p>
+            <p class="text-xs text-blue-600 font-semibold mt-1">6,000원</p>
+          </button>
+          <button class="btn-menu p-3 text-left border border-gray-200 rounded-xl hover:bg-blue-50 hover:border-blue-200 transition active:scale-[0.97]" data-price="18500" data-name="원두 세트">
+            <p class="font-bold text-gray-800 text-sm">시연 기본 세트</p>
+            <p class="text-xs text-blue-600 font-semibold mt-1">18,500원</p>
+          </button>
+        </div>
+      </div>
+
+      <!-- 결제 요청 금액 입력 영역 -->
+      <div class="bg-gray-50 p-4 rounded-2xl mb-5 space-y-2">
+        <label class="block text-xs font-bold text-gray-500">결제 요청 금액</label>
+        <div class="flex items-center gap-2">
+          <input type="number" id="input-amount" value="18500" class="w-full text-2xl font-black text-gray-900 bg-transparent outline-none border-b border-gray-300 pb-1 focus:border-blue-500">
+          <span class="text-lg font-bold text-gray-600">원</span>
+        </div>
+      </div>
+
+      <!-- 제어 액션 버튼들 -->
+      <div class="space-y-2.5">
+        <button id="btn-request-pay" class="w-full py-4 rounded-2xl toss-blue text-white font-bold text-base shadow-sm active:scale-[0.98] transition">
+          토스프론트로 결제 요청 보내기
+        </button>
+        <button id="btn-cancel" class="w-full py-3 rounded-2xl bg-gray-100 text-gray-600 font-semibold text-sm hover:bg-gray-200 active:scale-[0.98] transition">
+          요청 취소 및 고객화면 대기 복귀
+        </button>
+      </div>
+
+      <div class="mt-5 p-3 bg-blue-50 rounded-xl text-[11px] text-blue-700 leading-relaxed">
+        💡 <b>연동 상태:</b> 고객용 토스프론트 화면과 동일한 계정으로 로그인되어 실시간으로 결제 신호가 동기화됩니다.
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Firebase Modular SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { 
+      getAuth, 
+      signInWithEmailAndPassword, 
+      onAuthStateChanged, 
+      signOut 
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const firebaseConfig = {
+  apiKey: "AIzaSyATeMIf6SwKO1D9BkUcNavjjoUA86YSd6w",
+  authDomain: "tossfront-onpos-front.firebaseapp.com",
+  databaseURL: "https://tossfront-onpos-front-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "tossfront-onpos-front",
+  storageBucket: "tossfront-onpos-front.firebasestorage.app",
+  messagingSenderId: "415085269090",
+  appId: "1:415085269090:web:4f8db0b059d86ef450813b",
+  measurementId: "G-JW1G8D9N9M"
+};
+
+    let app, auth, db;
+    let isFirebaseReady = false;
+    let currentStaffUser = null;
+
+    try {
+      app = initializeApp(firebaseConfig);
+      auth = getAuth(app);
+      db = getDatabase(app);
+      isFirebaseReady = true;
+    } catch(e) {
+      console.warn("Firebase 설정 대기 중 (오프라인 모드)");
+    }
+
+    const secLogin = document.getElementById('section-login');
+    const secPos = document.getElementById('section-pos');
+    const authError = document.getElementById('staff-auth-error');
+    const staffDisplayName = document.getElementById('staff-display-name');
+    const staffDisplayEmail = document.getElementById('staff-display-email');
+    const inputAmount = document.getElementById('input-amount');
+    const badgeStatus = document.getElementById('badge-status');
+
+    // 1. 자동 로그인 세션 감지
+    if (isFirebaseReady) {
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          currentStaffUser = user;
+          staffDisplayEmail.innerText = user.email;
+
+          // 매장명 조회
+          onValue(ref(db, `stores/${user.uid}/storeName`), (snap) => {
+            if (snap.exists()) {
+              staffDisplayName.innerText = snap.val();
+            }
+          }, { onlyOnce: true });
+
+          // 기기 상태 실시간 모니터링 시작
+          listenDeviceStatus(user.uid);
+
+          secLogin.classList.add('hidden');
+          secPos.classList.remove('hidden');
+        } else {
+          currentStaffUser = null;
+          secPos.classList.add('hidden');
+          secLogin.classList.remove('hidden');
+        }
+      });
+    }
+
+    // 2. 직원 로그인 처리
+    document.getElementById('btn-staff-login').addEventListener('click', async () => {
+      const email = document.getElementById('input-staff-email').value.trim();
+      const pass = document.getElementById('input-staff-password').value.trim();
+
+      if (isFirebaseReady) {
+        try {
+          authError.innerText = "로그인 확인 중...";
+          const userCred = await signInWithEmailAndPassword(auth, email, pass);
+          currentStaffUser = userCred.user;
+          authError.innerText = "";
+        } catch (err) {
+          console.error(err);
+          let errText = "로그인에 실패했습니다.";
+          if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+            errText = "등록되지 않은 직원이거나 비밀번호가 틀렸습니다.";
+          } else if (err.code === 'auth/invalid-email') {
+            errText = "올바른 이메일 형식을 입력해주세요.";
+          }
+          authError.innerText = errText;
+        }
+      } else {
+        // Firebase 키 미설정 시 로컬 테스트 통과
+        staffDisplayEmail.innerText = email || "local-staff@test.com";
+        secLogin.classList.add('hidden');
+        secPos.classList.remove('hidden');
+      }
+    });
+
+    // 3. 로그아웃 처리
+    document.getElementById('btn-staff-logout').addEventListener('click', async () => {
+      if (isFirebaseReady && auth) {
+        await signOut(auth);
+      } else {
+        secPos.classList.add('hidden');
+        secLogin.classList.remove('hidden');
+      }
+    });
+
+    // 메뉴 버튼 클릭 시 금액 자동 세팅
+    document.querySelectorAll('.btn-menu').forEach(btn => {
+      btn.addEventListener('click', () => {
+        inputAmount.value = btn.getAttribute('data-price');
+      });
+    });
+
+    // 4. 고객 단말기로 결제 요청 전송
+    document.getElementById('btn-request-pay').addEventListener('click', () => {
+      const amount = Number(inputAmount.value) || 0;
+      const targetUid = currentStaffUser ? currentStaffUser.uid : 'default';
+
+      if (isFirebaseReady) {
+        set(ref(db, `devices/${targetUid}`), {
+          state: 'WAITING_PAYMENT',
+          amount: amount,
+          updatedAt: Date.now()
+        });
+      } else {
+        badgeStatus.innerText = `결제 대기 중 (${amount.toLocaleString()}원)`;
+        badgeStatus.className = "px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-600";
+      }
+    });
+
+    // 5. 결제 요청 취소 및 대기 화면 복귀
+    document.getElementById('btn-cancel').addEventListener('click', () => {
+      const targetUid = currentStaffUser ? currentStaffUser.uid : 'default';
+
+      if (isFirebaseReady) {
+        set(ref(db, `devices/${targetUid}`), {
+          state: 'IDLE',
+          amount: 0,
+          updatedAt: Date.now()
+        });
+      } else {
+        badgeStatus.innerText = "고객 대기 중 (IDLE)";
+        badgeStatus.className = "px-2.5 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-500";
+      }
+    });
+
+    // 6. 단말기 결제 진행 상태 실시간 리스너
+    function listenDeviceStatus(uid) {
+      if (!isFirebaseReady) return;
+      onValue(ref(db, `devices/${uid}`), (snapshot) => {
+        const val = snapshot.val();
+        if (!val) return;
+
+        if (val.state === 'IDLE') {
+          badgeStatus.innerText = "고객 대기 중 (IDLE)";
+          badgeStatus.className = "px-2.5 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-500";
+        } else if (val.state === 'WAITING_PAYMENT') {
+          badgeStatus.innerText = `결제 대기 중 (${Number(val.amount).toLocaleString()}원)`;
+          badgeStatus.className = "px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-600";
+        } else if (val.state === 'PROCESSING') {
+          badgeStatus.innerText = "카드/페이 승인 중...";
+          badgeStatus.className = "px-2.5 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-700 animate-pulse";
+        } else if (val.state === 'COMPLETED') {
+          badgeStatus.innerText = "결제 완료됨 ✓";
+          badgeStatus.className = "px-2.5 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-700";
+        }
+      });
+    }
+  </script>
+</body>
+</html>

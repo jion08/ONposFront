@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>토스프론트 고객화면 (Front Client)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* 여백 및 스크롤바 완전 제거 (기기 전체화면 채우기) */
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", Roboto, "Noto Sans KR", sans-serif;
+    }
+
+    .toss-blue { background-color: #3182F6; }
+    .toss-blue:active { background-color: #1b64da; }
+
+    /* 화면 전환 애니메이션 */
+    .view-transition {
+      transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .view-hidden-down {
+      opacity: 0;
+      transform: translateY(28px);
+      pointer-events: none;
+    }
+    .view-hidden-up {
+      opacity: 0;
+      transform: translateY(-28px);
+      pointer-events: none;
+    }
+    .view-active {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    /* 바텀시트 슬라이드 */
+    .sheet-transition {
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    }
+    .sheet-hidden {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    .sheet-visible {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* 체크 아이콘 튕김 애니메이션 */
+    @keyframes toss-pop {
+      0% { transform: scale(0.6); opacity: 0; }
+      70% { transform: scale(1.15); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-toss-pop {
+      animation: toss-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    /* 살아 움직이는 토스 블루 그라디언트 배경 */
+    @keyframes toss-gradient-move {
+      0% { background-position: 0% 20%; }
+      50% { background-position: 100% 80%; }
+      100% { background-position: 0% 20%; }
+    }
+    .animated-toss-bg {
+      background: linear-gradient(145deg, #7ab5ff, #3a82f6, #1d64e8, #60a5fa, #2563eb);
+      background-size: 260% 260%;
+      animation: toss-gradient-move 9s ease infinite;
+    }
+
+    @keyframes liquid-drift-1 {
+      0% { transform: translate(-10%, -10%) scale(1); }
+      50% { transform: translate(15%, 15%) scale(1.2); }
+      100% { transform: translate(-10%, -10%) scale(1); }
+    }
+    @keyframes liquid-drift-2 {
+      0% { transform: translate(15%, 10%) scale(1.15); }
+      50% { transform: translate(-15%, -15%) scale(0.9); }
+      100% { transform: translate(15%, 10%) scale(1.15); }
+    }
+    .liquid-orb-1 {
+      animation: liquid-drift-1 12s ease-in-out infinite;
+    }
+    .liquid-orb-2 {
+      animation: liquid-drift-2 15s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="w-full h-full bg-white m-0 p-0 overflow-hidden">
+
+  <!-- 토스프론트 디스플레이 전체를 가득 채우는 메인 컨테이너 (고정 크기, 테두리, 배경 여백 제거) -->
+  <main class="w-full h-full relative overflow-hidden bg-white">
+    
+    <!-- 1. 초기 로그인 화면 -->
+    <section id="view-login" class="view-transition view-active absolute inset-0 flex flex-col justify-between p-7 bg-white z-10">
+      <div>
+        <div class="flex justify-between items-center text-[12px] text-gray-400 mb-8 font-medium">
+          
+          <span id="txt-login-status" class="text-xs text-blue-500 font-semibold"></span>
+        </div>
+        
+        <div class="flex items-center gap-2 mb-8">
+          <div class="w-4 h-4 rounded-full toss-blue"></div>
+          <span class="text-xl font-bold tracking-tight text-gray-900">toss front</span>
+        </div>
+
+        <h1 class="text-2xl font-bold text-gray-900 leading-snug mb-8">매장 정보를<br>알려주세요</h1>
+
+        <div class="space-y-6">
+          <div class="border-b border-gray-200 focus-within:border-blue-500 pb-1.5 transition-colors">
+            <label class="block text-xs text-gray-400 mb-1">사업자등록번호 또는 이메일</label>
+            <input type="email" id="input-email"  class="w-full text-base font-medium text-gray-800 outline-none bg-transparent" placeholder="이메일 입력">
+          </div>
+          <div class="border-b border-gray-200 focus-within:border-blue-500 pb-1.5 transition-colors">
+            <label class="block text-xs text-gray-400 mb-1">비밀번호</label>
+            <input type="password" id="input-password"  class="w-full text-base font-medium text-gray-800 outline-none bg-transparent" placeholder="비밀번호 입력">
+          </div>
+          <div class="border-b border-gray-200 focus-within:border-blue-500 pb-1.5 transition-colors">
+            <label class="block text-xs text-gray-400 mb-1">매장명 (대기화면 타이틀)</label>
+            <input type="text" id="input-store-name"  class="w-full text-base font-medium text-gray-800 outline-none bg-transparent" placeholder="매장명 입력">
+          </div>
+        </div>
+
+        <p id="auth-msg" class="text-xs mt-3 min-h-[16px] text-red-500 font-medium"></p>
+      </div>
+
+      <div class="pb-2">
+        <button id="btn-login" class="w-full py-4 rounded-2xl toss-blue text-white font-bold text-lg shadow-sm active:scale-[0.98] transition-transform">
+          로그인 후 매장 연결
+        </button>
+      </div>
+    </section>
+
+    <!-- 2. 대기 화면 (Standby) - 화면 끝까지 꽉 차는 움직이는 토스 블루 배경 -->
+    <section id="view-standby" class="view-transition view-hidden-down absolute inset-0 animated-toss-bg flex flex-col text-white z-10 overflow-hidden">
+      <!-- 배경 일렁임 오로라 블러 레이어 -->
+      <div class="absolute inset-0 pointer-events-none overflow-hidden opacity-45">
+        <div class="liquid-orb-1 absolute -top-24 -left-20 w-80 h-80 rounded-full bg-sky-200 blur-3xl"></div>
+        <div class="liquid-orb-2 absolute top-1/3 -right-20 w-80 h-80 rounded-full bg-blue-300 blur-3xl"></div>
+        <div class="liquid-orb-1 absolute -bottom-20 left-10 w-72 h-72 rounded-full bg-indigo-400 blur-3xl"></div>
+      </div>
+
+      <!-- 우상단 더블 클릭 감지 투명 히든 버튼 (설정 복귀) -->
+      <div id="hidden-corner-btn" class="absolute top-0 right-0 w-32 h-32 z-30 cursor-pointer" title="더블 클릭 시 설정/계정관리 이동"></div>
+
+      <!-- 상단 상태 표시 영역 -->
+      <div class="relative z-10 p-6 flex justify-between items-center text-[12px] opacity-80">
+        <span id="badge-store-account" class="px-2.5 py-1 rounded-full bg-black/20 backdrop-blur-sm cursor-pointer" title="클릭 시 전체화면 토글">연결 계정 확인 중</span>
+        <span class="text-xs text-white/80 font-medium">● 온라인</span>
+      </div>
+
+      <!-- 상단 및 중간 여백 영역 -->
+      <div class="flex-1 relative z-10"></div>
+
+      <!-- 하단 중앙 정렬 매장명 및 토스 공식 모노 로고 -->
+      <div class="relative z-10 px-6 pb-16 flex flex-col items-center justify-center text-center">
+        <h2 id="display-store-name" class="text-[36px] font-black tracking-tight text-white drop-shadow-sm leading-tight select-none">
+          스테픈 커피
+        </h2>
+
+        <div class="mt-7 flex justify-center items-center">
+          <img src="https://static.toss.im/logos/png/4x/logo-toss-mono-white.png" alt="toss" class="h-4 w-auto object-contain opacity-90 drop-shadow-sm pointer-events-none">
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. 결제 방법 선택 화면 -->
+    <section id="view-payment" class="view-transition view-hidden-down absolute inset-0 flex flex-col p-6 bg-white z-10 justify-between">
+      <div>
+        <header class="flex justify-between items-center mb-6">
+          <button id="btn-cancel-pay" class="text-gray-400 hover:text-gray-600 text-xl p-1">✕</button>
+          <span class="text-xs text-blue-500 font-semibold bg-blue-50 px-2.5 py-1 rounded-full">결제 대기 중</span>
+        </header>
+
+        <div class="mb-6">
+          <p class="text-sm font-semibold text-gray-500">결제할 금액 <span class="text-blue-600 font-bold" id="txt-amount">0원</span></p>
+          <h2 class="text-2xl font-bold text-gray-900 mt-1">결제 방법을 선택해주세요</h2>
+        </div>
+
+        <!-- 결제 수단 그리드 (카드 / 삼성·애플페이) -->
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <button class="btn-pay-method flex flex-col items-center justify-center p-5 bg-gray-50 hover:bg-gray-100 rounded-2xl border border-gray-100 transition active:scale-[0.96]" data-name="카드">
+            <div class="w-12 h-12 rounded-2xl bg-blue-500 flex items-center justify-center text-white mb-2 shadow-sm">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" stroke-width="2"/><line x1="2" y1="10" x2="22" y2="10" stroke-width="2"/></svg>
+            </div>
+            <span class="font-bold text-gray-800 text-sm">카드</span>
+          </button>
+
+          <button class="btn-pay-method flex flex-col items-center justify-center p-5 bg-gray-50 hover:bg-gray-100 rounded-2xl border border-gray-100 transition active:scale-[0.96]" data-name="삼성·애플페이">
+            <div class="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center text-white mb-2 shadow-sm font-bold text-xs">
+              Pay
+            </div>
+            <span class="font-bold text-gray-800 text-sm">삼성·애플페이</span>
+          </button>
+        </div>
+
+        <!-- 리스트형 결제 수단 -->
+        <div class="space-y-2.5">
+          <button class="btn-pay-method w-full p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl border border-gray-100 flex items-center justify-between transition active:scale-[0.98]" data-name="QR 간편결제">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-xl bg-yellow-100 text-yellow-700 flex items-center justify-center font-bold text-xs">QR</div>
+              <div class="text-left">
+                <p class="font-bold text-gray-800 text-sm">QR 간편결제</p>
+                <p class="text-[11px] text-gray-400">카카오페이 · 네이버페이 · 제로페이</p>
+              </div>
+            </div>
+            <span class="text-xs text-gray-400 font-medium">스캔</span>
+          </button>
+
+          <button class="btn-pay-method w-full p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl border border-gray-100 flex items-center justify-between transition active:scale-[0.98]" data-name="계좌이체">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center font-bold text-xs">₩</div>
+              <span class="font-bold text-gray-800 text-sm">계좌이체</span>
+            </div>
+            <span class="text-xs text-gray-400 font-medium">이체</span>
+          </button>
+
+          <button class="btn-pay-method w-full p-4 bg-gray-50 hover:bg-gray-100 rounded-2xl border border-gray-100 flex items-center justify-between transition active:scale-[0.98]" data-name="현금">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-xs">₩</div>
+              <span class="font-bold text-gray-800 text-sm">현금</span>
+            </div>
+            <span class="text-xs text-gray-400 font-medium">직원문의</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 모의 결제 바텀시트 모달 -->
+    <div id="modal-container" class="absolute inset-0 bg-black/50 z-50 transition-opacity duration-300 opacity-0 pointer-events-none flex items-end justify-center p-0">
+      <div id="modal-box" class="sheet-transition sheet-hidden bg-white w-full rounded-t-3xl p-6 text-center shadow-2xl">
+        
+        <!-- Step 1: 안내 팝업 -->
+        <div id="step-guide" class="space-y-4 pb-4">
+          <div class="w-16 h-16 mx-auto bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500 transform transition-transform">
+            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" stroke-width="2"/><line x1="2" y1="10" x2="22" y2="10" stroke-width="2"/></svg>
+          </div>
+          <div>
+            <h3 id="txt-guide-title" class="text-lg font-bold text-gray-900">카드를 삽입해주세요</h3>
+            <p id="txt-guide-desc" class="text-xs text-gray-500 mt-1">카드 삽입 후 아래 [확인] 버튼을 눌러주세요</p>
+          </div>
+          <button id="btn-guide-confirm" class="w-full py-4 toss-blue text-white rounded-xl font-bold text-base shadow-sm active:scale-[0.98] transition-transform">
+            확인
+          </button>
+        </div>
+
+        <!-- Step 2: 1~2초 결제 승인 중 화면 -->
+        <div id="step-processing" class="space-y-4 py-8 hidden">
+          <div class="w-12 h-12 mx-auto border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+          <div>
+            <h3 class="text-base font-bold text-gray-900">결제 진행 중입니다</h3>
+            <p class="text-xs text-gray-400 mt-1">카드를 뽑지 말고 잠시만 기다려주세요</p>
+          </div>
+        </div>
+
+        <!-- Step 3: 결제 완료 화면 -->
+        <div id="step-complete" class="space-y-4 py-8 hidden">
+          <div class="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center text-green-600 animate-toss-pop">
+            <svg class="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+          </div>
+          <div>
+            <h3 class="text-xl font-bold text-gray-900">결제 완료</h3>
+            <p class="text-xs text-gray-500 mt-1">카드를 챙겨주세요. 영수증이 발행되었습니다.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Firebase Modular SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { 
+      getAuth, 
+      signInWithEmailAndPassword, 
+      onAuthStateChanged 
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    const firebaseConfig = {
+  apiKey: "AIzaSyATeMIf6SwKO1D9BkUcNavjjoUA86YSd6w",
+  authDomain: "tossfront-onpos-front.firebaseapp.com",
+  databaseURL: "https://tossfront-onpos-front-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "tossfront-onpos-front",
+  storageBucket: "tossfront-onpos-front.firebasestorage.app",
+  messagingSenderId: "415085269090",
+  appId: "1:415085269090:web:4f8db0b059d86ef450813b",
+  measurementId: "G-JW1G8D9N9M"
+};
+
+    let app, auth, db;
+    let isFirebaseReady = false;
+    let currentUser = null;
+
+    try {
+      app = initializeApp(firebaseConfig);
+      auth = getAuth(app);
+      db = getDatabase(app);
+      isFirebaseReady = true;
+    } catch (e) {
+      console.warn("Firebase 설정 대기 중 (오프라인 데모 모드로 작동)");
+    }
+
+    const vLogin = document.getElementById('view-login');
+    const vStandby = document.getElementById('view-standby');
+    const vPayment = document.getElementById('view-payment');
+
+    const modal = document.getElementById('modal-container');
+    const modalBox = document.getElementById('modal-box');
+    const stepGuide = document.getElementById('step-guide');
+    const stepProcessing = document.getElementById('step-processing');
+    const stepComplete = document.getElementById('step-complete');
+
+    const txtGuideTitle = document.getElementById('txt-guide-title');
+    const txtGuideDesc = document.getElementById('txt-guide-desc');
+    const txtAmount = document.getElementById('txt-amount');
+    const displayStoreName = document.getElementById('display-store-name');
+    const badgeStoreAccount = document.getElementById('badge-store-account');
+    if (badgeStoreAccount) {
+      badgeStoreAccount.addEventListener('click', () => {
+        toggleFullscreen();
+      });
+    }
+    const authMsg = document.getElementById('auth-msg');
+
+    function showAuthMessage(msg, isError = true) {
+      authMsg.innerText = msg;
+      authMsg.className = `text-xs mt-3 min-h-[16px] font-medium ${isError ? 'text-red-500' : 'text-blue-500'}`;
+    }
+
+    
+    // [전체화면(Fullscreen) API 제어]
+    function enterFullscreen() {
+      const elem = document.documentElement;
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (elem.requestFullscreen) {
+          elem.requestFullscreen().catch(err => console.log('Fullscreen error:', err));
+        } else if (elem.webkitRequestFullscreen) { /* Safari / iOS / Android WebKit */
+          elem.webkitRequestFullscreen();
+        }
+      }
+    }
+
+    function toggleFullscreen() {
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        enterFullscreen();
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+      }
+    }
+
+    function transitionView(fromView, toView, direction = 'up') {
+      fromView.classList.remove('view-active');
+      if (direction === 'up') {
+        fromView.classList.add('view-hidden-up');
+        toView.classList.remove('view-hidden-up', 'view-hidden-down');
+        toView.classList.add('view-hidden-down');
+      } else {
+        fromView.classList.add('view-hidden-down');
+        toView.classList.remove('view-hidden-up', 'view-hidden-down');
+        toView.classList.add('view-hidden-up');
+      }
+
+      requestAnimationFrame(() => {
+        toView.classList.remove('view-hidden-up', 'view-hidden-down');
+        toView.classList.add('view-active');
+      });
+    }
+
+    // 로그인 상태 감지 (자동 로그인)
+    if (isFirebaseReady) {
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          currentUser = user;
+          badgeStoreAccount.innerText = user.email;
+          
+          const storeNameRef = ref(db, `stores/${user.uid}/storeName`);
+          onValue(storeNameRef, (snap) => {
+            if (snap.exists()) {
+              displayStoreName.innerText = snap.val();
+              document.getElementById('input-store-name').value = snap.val();
+            }
+          }, { onlyOnce: true });
+
+          subscribePosUpdates(user.uid);
+          
+          if (vLogin.classList.contains('view-active')) {
+            transitionView(vLogin, vStandby, 'up');
+          }
+        } else {
+          currentUser = null;
+          badgeStoreAccount.innerText = "오프라인/미인증";
+        }
+      });
+    }
+
+    // 콘솔 생성 계정 로그인 처리
+    document.getElementById('btn-login').addEventListener('click', async () => {
+      const email = document.getElementById('input-email').value.trim();
+      const pass = document.getElementById('input-password').value.trim();
+      const storeName = document.getElementById('input-store-name').value.trim() || "스테픈 커피";
+
+      displayStoreName.innerText = storeName;
+      enterFullscreen();
+
+      if (isFirebaseReady) {
+        try {
+          showAuthMessage("로그인 확인 중...", false);
+          const userCred = await signInWithEmailAndPassword(auth, email, pass);
+          currentUser = userCred.user;
+          badgeStoreAccount.innerText = email;
+          
+          await set(ref(db, `stores/${currentUser.uid}/storeName`), storeName);
+          subscribePosUpdates(currentUser.uid);
+          showAuthMessage("");
+          transitionView(vLogin, vStandby, 'up');
+        } catch (err) {
+          console.error(err);
+          let errText = "로그인에 실패했습니다.";
+          if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+            errText = "등록되지 않은 계정이거나 비밀번호가 틀렸습니다.";
+          } else if (err.code === 'auth/invalid-email') {
+            errText = "올바른 이메일 형식을 입력해주세요.";
+          }
+          showAuthMessage(errText, true);
+        }
+      } else {
+        badgeStoreAccount.innerText = email || "로컬 시연 계정";
+        transitionView(vLogin, vStandby, 'up');
+      }
+    });
+
+    // 우상단 히든 더블클릭 -> 설정/로그인 복귀
+    let tapCount = 0;
+    let tapTimer = null;
+    const hiddenCornerBtn = document.getElementById('hidden-corner-btn');
+    
+    // 대기화면 터치 시 혹시 풀려있을 전체화면 다시 적용
+    vStandby.addEventListener('click', (e) => {
+      if (e.target !== hiddenCornerBtn) {
+        enterFullscreen();
+      }
+    });
+
+    hiddenCornerBtn.addEventListener('click', () => {
+      tapCount++;
+      if (tapCount === 1) {
+        tapTimer = setTimeout(() => { tapCount = 0; }, 400);
+      } else if (tapCount === 2) {
+        clearTimeout(tapTimer);
+        tapCount = 0;
+        transitionView(vStandby, vLogin, 'down');
+      }
+    });
+
+    // 결제 취소
+    document.getElementById('btn-cancel-pay').addEventListener('click', () => {
+      transitionView(vPayment, vStandby, 'down');
+      updateRemoteStatus('IDLE', 0);
+    });
+
+    function openModal() {
+      modal.classList.remove('pointer-events-none', 'opacity-0');
+      modal.classList.add('opacity-100');
+      modalBox.classList.remove('sheet-hidden');
+      modalBox.classList.add('sheet-visible');
+    }
+
+    function closeModal() {
+      modal.classList.remove('opacity-100');
+      modal.classList.add('opacity-0', 'pointer-events-none');
+      modalBox.classList.remove('sheet-visible');
+      modalBox.classList.add('sheet-hidden');
+    }
+
+    // 결제 수단 클릭
+    let currentMethod = '';
+    document.querySelectorAll('.btn-pay-method').forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentMethod = btn.getAttribute('data-name');
+        
+        if (currentMethod === '카드') {
+          txtGuideTitle.innerText = "카드를 삽입해주세요";
+          txtGuideDesc.innerText = "카드 삽입 후 아래 [확인] 버튼을 눌러주세요";
+        } else if (currentMethod.includes('페이')) {
+          txtGuideTitle.innerText = "스마트폰을 태그해주세요";
+          txtGuideDesc.innerText = "단말기 상단에 휴대폰을 댄 뒤 [확인]을 눌러주세요";
+        } else {
+          txtGuideTitle.innerText = `${currentMethod} 진행 안내`;
+          txtGuideDesc.innerText = "안내에 따라 확인 후 [확인] 버튼을 눌러주세요";
+        }
+
+        stepGuide.classList.remove('hidden');
+        stepProcessing.classList.add('hidden');
+        stepComplete.classList.add('hidden');
+        openModal();
+      });
+    });
+
+    // 확인 -> 1.5초 승인 -> 완료 팝업 -> 2초 뒤 대기화면 복귀
+    document.getElementById('btn-guide-confirm').addEventListener('click', () => {
+      stepGuide.classList.add('hidden');
+      stepProcessing.classList.remove('hidden');
+      updateRemoteStatus('PROCESSING');
+
+      setTimeout(() => {
+        stepProcessing.classList.add('hidden');
+        stepComplete.classList.remove('hidden');
+        updateRemoteStatus('COMPLETED');
+
+        setTimeout(() => {
+          closeModal();
+          setTimeout(() => {
+            transitionView(vPayment, vStandby, 'down');
+            updateRemoteStatus('IDLE', 0);
+          }, 200);
+        }, 2000);
+      }, 1500);
+    });
+
+    // Firebase 실시간 리스너
+    function subscribePosUpdates(uid = 'default') {
+      if (!isFirebaseReady) return;
+      const posRef = ref(db, `devices/${uid}`);
+      onValue(posRef, (snapshot) => {
+        const val = snapshot.val();
+        if (!val) return;
+
+        if (val.state === 'WAITING_PAYMENT') {
+          txtAmount.innerText = `${Number(val.amount || 0).toLocaleString()}원`;
+          if (vStandby.classList.contains('view-active')) {
+            transitionView(vStandby, vPayment, 'up');
+          }
+        } else if (val.state === 'IDLE' && vPayment.classList.contains('view-active')) {
+          closeModal();
+          transitionView(vPayment, vStandby, 'down');
+        }
+      });
+    }
+
+    function updateRemoteStatus(state, amount = null) {
+      if (!isFirebaseReady) return;
+      const uid = currentUser ? currentUser.uid : 'default';
+      const posRef = ref(db, `devices/${uid}`);
+      const payload = { state: state, updatedAt: Date.now() };
+      if (amount !== null) payload.amount = amount;
+      set(posRef, payload);
+    }
+  </script>
+</body>
+</html>
